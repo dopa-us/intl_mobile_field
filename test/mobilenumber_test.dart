@@ -139,7 +139,7 @@ void main() {
       home: Scaffold(
         body: IntlMobileField(
           initialValue: '+8801781234567',
-          countries: const ["BD", "MY", "AE"],
+          countryCodes: const ["BD", "MY", "AE"],
           onChanged: (value) => result = value,
         ),
       ),
