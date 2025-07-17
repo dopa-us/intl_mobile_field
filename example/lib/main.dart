@@ -71,7 +71,7 @@ class _MyAppState extends State<MyApp> {
                   },
                   invalidNumberMessage: "",
                   favorite: ["BD", "US", "MY"],
-                  countries: ['BD', 'MY', 'US', 'AE', 'UK', 'NL'],
+                  countryCodes: ['BD', 'MY', 'US', 'AE', 'UK', 'NL'],
                   favoriteCountryCodePosition: Position.trailing,
                   favoriteIcon: Icon(Icons.favorite),
                   onChanged: (number) {

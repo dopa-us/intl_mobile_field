@@ -141,7 +141,11 @@ class IntlMobileField extends StatefulWidget {
   final String? initialValue;
 
   /// List of Country to display see countries.dart for format
-  final List<String>? countries;
+  /// example:
+  /// ```dart
+  /// countryCodes: ['BD', 'IN', 'US'],
+  /// ```
+  final List<String>? countryCodes;
 
   /// The decoration to show around the text field.
   ///
@@ -342,7 +346,7 @@ class IntlMobileField extends StatefulWidget {
     this.onSubmitted,
     this.validator,
     this.onChanged,
-    this.countries,
+    this.countryCodes,
     this.onSaved,
     this.inputFormatters,
     this.enabled = true,
@@ -420,11 +424,14 @@ class _IntlMobileFieldState extends State<IntlMobileField> {
   void initState() {
     super.initState();
 
-    if (widget.countries != null && widget.countries!.isNotEmpty) {
-      countryList = countries
-          .where((c) =>
-              widget.countries!.contains(c.code.toUpperCase()) ||
-              widget.countries!.contains(c.dialCode))
+    final argsCountryCodes = widget.countryCodes;
+    if (argsCountryCodes != null && argsCountryCodes.isNotEmpty) {
+      countryList = argsCountryCodes
+          .map((c) => countries.cast<Country?>().firstWhere(
+                (country) => country?.code == c.toUpperCase(),
+                orElse: () => null,
+              ))
+          .whereType<Country>()
           .toList();
     } else {
       countryList = countries;
@@ -748,8 +755,16 @@ class _IntlMobileFieldState extends State<IntlMobileField> {
       textInputAction: widget.textInputAction,
       autovalidateMode: widget.autovalidateMode,
       scrollPadding: widget.scrollPadding,
-      buildCounter: (BuildContext context,
-          {int? currentLength, int? maxLength, bool? isFocused}) {
+      buildCounter: (
+        BuildContext context, {
+        int? currentLength,
+        int? maxLength,
+        bool? isFocused,
+      }) {
+        if (widget.disableLengthCounter) {
+          return const SizedBox.shrink();
+        }
+
         final fullText = widget.controller?.text ?? widget.initialValue ?? '';
         final numberLength =
             _stripCountryCode(fullText, _selectedCountry).length;
