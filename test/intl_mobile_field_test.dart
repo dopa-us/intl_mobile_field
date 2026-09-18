@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl_mobile_field/countries.dart';
+import 'package:intl_mobile_field/flags_drop_down.dart';
 import 'package:intl_mobile_field/intl_mobile_field.dart';
 
 class TestWidget extends StatelessWidget {
@@ -19,6 +21,89 @@ class TestWidget extends StatelessWidget {
           ),
         ));
   }
+}
+
+class CountryPickerTestWidget extends StatelessWidget {
+  const CountryPickerTestWidget({
+    super.key,
+    required this.showField,
+    this.onCountryChanged,
+  });
+
+  final ValueNotifier<bool> showField;
+  final ValueChanged<Country>? onCountryChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: ValueListenableBuilder<bool>(
+          valueListenable: showField,
+          builder: (context, isVisible, child) {
+            if (!isVisible) {
+              return const SizedBox(key: ValueKey('removed-field'));
+            }
+
+            return IntlMobileField(
+              flagsButtonKey: const ValueKey('flags-button'),
+              initialCountryCode: 'BD',
+              onCountryChanged: onCountryChanged,
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class FlagsDropDownTestWidget extends StatelessWidget {
+  const FlagsDropDownTestWidget({
+    super.key,
+    required this.showDropDown,
+    this.onCountryChanged,
+  });
+
+  final ValueNotifier<bool> showDropDown;
+  final ValueChanged<Country>? onCountryChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: ValueListenableBuilder<bool>(
+          valueListenable: showDropDown,
+          builder: (context, isVisible, child) {
+            if (!isVisible) {
+              return const SizedBox(key: ValueKey('removed-dropdown'));
+            }
+
+            return FlagsDropDown(
+              countries: countries,
+              initialCountryCode: 'BD',
+              onCountryChanged: onCountryChanged,
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> chooseCountry(
+  WidgetTester tester, {
+  required String countryName,
+}) async {
+  await tester.tap(find.text('+880'));
+  await tester.pumpAndSettle();
+
+  expect(find.text('Search Country'), findsOneWidget);
+  await tester.enterText(
+    find.descendant(of: find.byType(Dialog), matching: find.byType(TextField)),
+    countryName,
+  );
+  await tester.pump();
+  await tester.tap(find.widgetWithText(ListTile, countryName));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -61,5 +146,129 @@ void main() {
 
     expect(countryCodeFinder, findsOneWidget);
     expect(numberFinder, findsOneWidget);
+  });
+
+  testWidgets('Country selection does not notify a disposed IntlMobileField',
+      (WidgetTester tester) async {
+    final showField = ValueNotifier<bool>(true);
+    final changedCountries = <String>[];
+
+    await tester.pumpWidget(
+      CountryPickerTestWidget(
+        showField: showField,
+        onCountryChanged: (country) => changedCountries.add(country.code),
+      ),
+    );
+
+    await tester.tap(find.text('+880'));
+    await tester.pumpAndSettle();
+    expect(find.text('Search Country'), findsOneWidget);
+
+    showField.value = false;
+    await tester.pump();
+    expect(find.byKey(const ValueKey('removed-field')), findsOneWidget);
+    expect(find.text('Search Country'), findsOneWidget);
+
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextField),
+      ),
+      'Japan',
+    );
+    await tester.pump();
+    await tester.tap(find.widgetWithText(ListTile, 'Japan'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(changedCountries, isEmpty);
+
+    showField.dispose();
+  });
+
+  testWidgets('Country selection does not notify a disposed FlagsDropDown',
+      (WidgetTester tester) async {
+    final showDropDown = ValueNotifier<bool>(true);
+    final changedCountries = <String>[];
+
+    await tester.pumpWidget(
+      FlagsDropDownTestWidget(
+        showDropDown: showDropDown,
+        onCountryChanged: (country) => changedCountries.add(country.code),
+      ),
+    );
+
+    await tester.tap(find.text('+880'));
+    await tester.pumpAndSettle();
+    expect(find.text('Search Country'), findsOneWidget);
+
+    showDropDown.value = false;
+    await tester.pump();
+    expect(find.byKey(const ValueKey('removed-dropdown')), findsOneWidget);
+    expect(find.text('Search Country'), findsOneWidget);
+
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.byType(TextField),
+      ),
+      'Japan',
+    );
+    await tester.pump();
+    await tester.tap(find.widgetWithText(ListTile, 'Japan'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(changedCountries, isEmpty);
+
+    showDropDown.dispose();
+  });
+
+  testWidgets('Country selection updates the field and notifies once',
+      (WidgetTester tester) async {
+    final showField = ValueNotifier<bool>(true);
+    final changedCountries = <String>[];
+
+    await tester.pumpWidget(
+      CountryPickerTestWidget(
+        showField: showField,
+        onCountryChanged: (country) => changedCountries.add(country.code),
+      ),
+    );
+
+    expect(find.text('+880'), findsOneWidget);
+
+    await chooseCountry(tester, countryName: 'Japan');
+
+    expect(tester.takeException(), isNull);
+    expect(changedCountries, ['JP']);
+    expect(find.text('+81'), findsOneWidget);
+    expect(find.text('+880'), findsNothing);
+
+    showField.dispose();
+  });
+
+  testWidgets('Country callback can remove the field without an exception',
+      (WidgetTester tester) async {
+    final showField = ValueNotifier<bool>(true);
+    final changedCountries = <String>[];
+
+    await tester.pumpWidget(
+      CountryPickerTestWidget(
+        showField: showField,
+        onCountryChanged: (country) {
+          changedCountries.add(country.code);
+          showField.value = false;
+        },
+      ),
+    );
+
+    await chooseCountry(tester, countryName: 'Japan');
+
+    expect(tester.takeException(), isNull);
+    expect(changedCountries, ['JP']);
+    expect(find.byKey(const ValueKey('removed-field')), findsOneWidget);
+
+    showField.dispose();
   });
 }

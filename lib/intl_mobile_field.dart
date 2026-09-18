@@ -676,9 +676,12 @@ class _IntlMobileFieldState extends State<IntlMobileField> {
           countries: countryList,
           initialCountryCode: _selectedCountry.code,
           onCountryChanged: (Country country) {
-            _selectedCountry = country;
+            if (!mounted) return;
+
+            setState(() {
+              _selectedCountry = country;
+            });
             widget.onCountryChanged?.call(country);
-            setState(() {});
           },
           countryCodeDisable: widget.countryCodeDisable,
           dialogCountryCodePosition: widget.dialogCountryCodePosition,
