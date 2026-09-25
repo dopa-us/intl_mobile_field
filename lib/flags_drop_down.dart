@@ -168,11 +168,11 @@ class _FlagsDropDownState extends State<FlagsDropDown> {
           countryPickerDialogBoxHeight: widget.countryPickerDialogBoxHeight,
           selectedCountry: _selectedCountry,
           onCountryChanged: (Country country) {
-            if (mounted) {
-              setState(() {
-                _selectedCountry = country;
-              });
-            }
+            if (!mounted) return;
+
+            setState(() {
+              _selectedCountry = country;
+            });
             widget.onCountryChanged?.call(country);
           }),
     );
